@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Secrets & Environment
+.env
+.env.local
+*.key
+*.pem
+
+# Logs & Temporary signal bus files
+*.log
+backtalk/logs/*
+!backtalk/logs/.gitkeep
+.voice_state
+.voice_waveform
+.voice_loading_pid
+.voice_alert
+.backtalk_session
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local TTS voice preview samples — generated locally, never uploaded
+voice_samples/

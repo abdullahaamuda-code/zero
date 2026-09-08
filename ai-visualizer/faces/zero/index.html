@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<!--
+ai-visualizer: give your AI agent a face.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZERO</title>
+<style>
+  @font-face{font-family:"VT323";src:url("../../assets/VT323-Regular.ttf")}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:#06070d;overflow:hidden;cursor:none}
+  canvas#stage{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+  div[title*="thinking sound"], div[title*="sound"], div[style*="Menlo"] { display: none !important; opacity: 0 !important; pointer-events: none !important; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script src="../../core.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   ZERO // CYBER NEON-GRID HUD
+   Dark, techy, premium: near-black #06070d background,
+   electric cyan #00f0ff to violet #8b5cf6 accents, 3D perspective
+   neon grid horizon, and a centered cybernetic HUD core with
+   dynamic audio waveform spectrum & reactive rings.
+   ============================================================ */
+
+const Q = new URLSearchParams(location.search);
+const SHOT = Q.get("shot");
+AV.init({ mic: true });
+
+const cv = document.getElementById("stage");
+const ctx = cv.getContext("2d");
+let W = 0, H = 0;
+
+// Palettes & theme
+const THEME = {
+  bg: "#06070d",
+  cyan: "rgba(0, 240, 255, 1)",
+  cyanDim: "rgba(0, 240, 255, 0.25)",
+  cyanGlow: "rgba(0, 240, 255, 0.6)",
+  violet: "rgba(139, 92, 246, 1)",
+  violetDim: "rgba(139, 92, 246, 0.25)",
+  violetGlow: "rgba(139, 92, 246, 0.6)",
+  white: "rgba(255, 255, 255, 0.95)",
+  alertRed: "rgba(255, 51, 102, 1)",
+  alertDim: "rgba(255, 51, 102, 0.3)"
+};
+
+const UI_FONT = "'VT323', monospace";
+
+// Load the custom Zero Avatar
+const avatarImg = new Image();
+let avatarLoaded = false;
+avatarImg.onload = () => { avatarLoaded = true; };
+avatarImg.src = "zero-avatar.png";
+if (avatarImg.complete && avatarImg.naturalWidth > 0) {
+  avatarLoaded = true;
+}
+
+// 3D Perspective Neon Grid
+class PerspectiveGrid {
+  constructor() {
+    this.offset = 0;
+  }
+  draw(dt, state) {
+    const horizonY = H * 0.58;
+    const speed = state === "speaking" ? 140 : (state === "thinking" ? 220 : 50);
+    this.offset = (this.offset + speed * (dt / 1000)) % 100;
+
+    ctx.save();
+    // Subtle horizon glow
+    const horizGlow = ctx.createLinearGradient(0, horizonY - 40, 0, horizonY + 80);
+    horizGlow.addColorStop(0, "rgba(139, 92, 246, 0)");
+    horizGlow.addColorStop(0.5, "rgba(139, 92, 246, 0.15)");
+    horizGlow.addColorStop(1, "rgba(0, 240, 255, 0)");
+    ctx.fillStyle = horizGlow;
+    ctx.fillRect(0, horizonY - 40, W, 120);
+
+    // Horizon line
+    ctx.strokeStyle = "rgba(0, 240, 255, 0.3)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY);
+    ctx.lineTo(W, horizonY);
+    ctx.stroke();
+
+    // Perspective vertical radiating lines
+    const numVLines = 36;
+    const vpX = W * 0.5;
+    const vpY = horizonY;
+
+    for (let i = -numVLines / 2; i <= numVLines / 2; i++) {
+      const bottomX = vpX + i * (W / 12);
+      ctx.strokeStyle = i % 2 === 0 ? "rgba(0, 240, 255, 0.16)" : "rgba(139, 92, 246, 0.12)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(vpX, vpY);
+      ctx.lineTo(bottomX, H);
+      ctx.stroke();
+    }
+
+    // Perspective horizontal moving lines (exponential spacing)
+    const numHLines = 18;
+    const groundHeight = H - horizonY;
+    for (let i = 0; i < numHLines; i++) {
+      const progress = (i + (this.offset / 100)) / numHLines;
+      const expProgress = Math.pow(progress, 2.2);
+      const y = horizonY + groundHeight * expProgress;
+      const alpha = expProgress * 0.5;
+
+      const grad = ctx.createLinearGradient(0, y, W, y);
+      grad.addColorStop(0, "rgba(0, 240, 255, 0)");
+      grad.addColorStop(0.5, `rgba(0, 240, 255, ${alpha})`);
+      grad.addColorStop(1, "rgba(139, 92, 246, 0)");
+
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1 + expProgress * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+// Tech Descrambler & text state
+const D = AV.util.Descrambler;
+let stateTag = null, tagState = "";
+let thinkDesc = null;
+const THINK_PHRASES = [
+  "ANALYZING INTENT",
+  "EXECUTING STREAM",
+  "QUERYING WORKSPACE",
+  "PROCESSING NEURAL DATA",
+  "SYNTHESIZING TO VOICE"
+];
+
+// Circular Cyber HUD Core
+class CyberCore {
+  constructor() {
+    this.rot1 = 0;
+    this.rot2 = 0;
+    this.pulse = 0;
+  }
+
+  draw(dt, state, env, samples, micLevel, alert) {
+    const cx = W * 0.5;
+    const cy = H * 0.44;
+    const baseR = Math.min(W, H) * 0.15;
+    const speed = state === "thinking" ? 3.5 : (state === "speaking" ? 1.5 : 0.6);
+
+    this.rot1 += 0.015 * speed;
+    this.rot2 -= 0.02 * speed;
+    this.pulse += 0.05;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Audio reactivity scale
+    const reactiveScale = 1 + (state === "speaking" ? env * 0.15 : (state === "listening" ? micLevel * 0.12 : Math.sin(this.pulse) * 0.02));
+    ctx.scale(reactiveScale, reactiveScale);
+
+    // Core glow
+    const primaryGlow = alert ? THEME.alertDim : (state === "speaking" ? THEME.cyanGlow : (state === "listening" ? THEME.violetGlow : THEME.cyanDim));
+    const radialGlow = ctx.createRadialGradient(0, 0, baseR * 0.4, 0, 0, baseR * 1.6);
+    radialGlow.addColorStop(0, "rgba(0, 0, 0, 0)");
+    radialGlow.addColorStop(0.7, primaryGlow);
+    radialGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = radialGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, baseR * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 1. Central Cyber Orb Core (Always active baseline so the orb is vibrant from frame 1)
+    ctx.save();
+    const orbGrad = ctx.createRadialGradient(0, 0, baseR * 0.05, 0, 0, baseR);
+    orbGrad.addColorStop(0, state === "speaking" ? "#38bdf8" : (state === "listening" ? "#c084fc" : "#00f0ff"));
+    orbGrad.addColorStop(0.3, state === "speaking" ? "#0284c7" : (state === "listening" ? "#7c3aed" : "#0284c7"));
+    orbGrad.addColorStop(0.7, state === "speaking" ? "#0369a1" : (state === "listening" ? "#4c1d95" : "#075985"));
+    orbGrad.addColorStop(1, "#06070d");
+    ctx.fillStyle = orbGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, baseR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Central Avatar Image (scaled to baseR * 1.14 so the full orb fills the circle with zero border gap)
+    if (avatarLoaded) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, baseR, 0, Math.PI * 2);
+      ctx.clip();
+      const orbDrawSize = baseR * 1.14;
+      ctx.drawImage(avatarImg, -orbDrawSize, -orbDrawSize, orbDrawSize * 2, orbDrawSize * 2);
+
+      // Tint overlay if thinking/alert
+      if (state === "thinking") {
+        ctx.fillStyle = "rgba(139, 92, 246, 0.25)";
+        ctx.fill();
+      } else if (alert) {
+        ctx.fillStyle = "rgba(255, 51, 102, 0.3)";
+        ctx.fill();
+      }
+      ctx.restore();
+    } else {
+      // Procedural animated energy core rings while loading
+      ctx.save();
+      ctx.strokeStyle = state === "speaking" ? THEME.cyan : THEME.violet;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, baseR * 0.5 + Math.sin(this.pulse * 2) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // Avatar Inner Border Ring
+    ctx.strokeStyle = alert ? THEME.alertRed : (state === "speaking" ? THEME.cyan : THEME.violet);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, baseR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 2. Radial Equalizer Bars (64 points mapped to circular spectrum)
+    const numBars = 64;
+    const innerBarR = baseR + 10;
+    const maxBarLen = Math.min(W, H) * 0.12;
+
+    for (let i = 0; i < numBars; i++) {
+      const angle = (i / numBars) * Math.PI * 2;
+      let barVal = 0.05;
+
+      if (state === "speaking") {
+        const sampleIdx = i < 32 ? i * 2 : (63 - (i - 32) * 2);
+        barVal = Math.max(0.06, (samples[sampleIdx] || 0) * 1.4 * env);
+      } else if (state === "listening") {
+        barVal = 0.08 + micLevel * 0.8 * (0.5 + 0.5 * Math.sin(i * 0.4 + this.pulse * 2));
+      } else if (state === "thinking") {
+        barVal = 0.08 + 0.15 * Math.abs(Math.sin(angle * 3 + this.rot1 * 4));
+      } else {
+        barVal = 0.04 + 0.03 * Math.sin(angle * 4 + this.pulse);
+      }
+
+      const barLen = Math.min(maxBarLen, barVal * maxBarLen);
+      const x1 = Math.cos(angle) * innerBarR;
+      const y1 = Math.sin(angle) * innerBarR;
+      const x2 = Math.cos(angle) * (innerBarR + barLen);
+      const y2 = Math.sin(angle) * (innerBarR + barLen);
+
+      // Color gradient from cyan to violet
+      const t = i / numBars;
+      ctx.strokeStyle = alert ? THEME.alertRed : (state === "listening" ? THEME.violet : (t < 0.5 ? THEME.cyan : THEME.violet));
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    // 3. Rotating HUD Tech Rings
+    // Ring 1 (Segmented outer cyan arc)
+    ctx.save();
+    ctx.rotate(this.rot1);
+    ctx.strokeStyle = THEME.cyan;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.arc(0, 0, baseR + 32, i * Math.PI * 0.5 + 0.15, (i + 1) * Math.PI * 0.5 - 0.15);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Ring 2 (Dashed violet counter-rotating ring)
+    ctx.save();
+    ctx.rotate(this.rot2);
+    ctx.strokeStyle = THEME.violet;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 12]);
+    ctx.beginPath();
+    ctx.arc(0, 0, baseR + 42, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // 4. Corner Targeting Brackets
+    const bracketDist = baseR + 58;
+    const bracketSize = 14;
+    ctx.strokeStyle = state === "speaking" ? THEME.cyan : THEME.violet;
+    ctx.lineWidth = 2;
+    const corners = [
+      [-bracketDist, -bracketDist, 1, 1],
+      [bracketDist, -bracketDist, -1, 1],
+      [-bracketDist, bracketDist, 1, -1],
+      [bracketDist, bracketDist, -1, -1]
+    ];
+    for (const [bx, by, dx, dy] of corners) {
+      ctx.beginPath();
+      ctx.moveTo(bx + dx * bracketSize, by);
+      ctx.lineTo(bx, by);
+      ctx.lineTo(bx, by + dy * bracketSize);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+}
+
+// UI Overlays & Lettering
+function drawHUDChrome(dt, state, env, micLevel, alert) {
+  ctx.save();
+
+  // 4 Minimal Corner Cyber Brackets
+  const pad = 24;
+  const blen = 16;
+  ctx.lineWidth = 1.5;
+
+  // Top-Left (Cyan)
+  ctx.strokeStyle = THEME.cyanDim;
+  ctx.beginPath();
+  ctx.moveTo(pad, pad + blen); ctx.lineTo(pad, pad); ctx.lineTo(pad + blen, pad);
+  ctx.stroke();
+
+  // Top-Right (Violet)
+  ctx.strokeStyle = THEME.violetDim;
+  ctx.beginPath();
+  ctx.moveTo(W - pad - blen, pad); ctx.lineTo(W - pad, pad); ctx.lineTo(W - pad, pad + blen);
+  ctx.stroke();
+
+  // Bottom-Left (Cyan)
+  ctx.strokeStyle = THEME.cyanDim;
+  ctx.beginPath();
+  ctx.moveTo(pad, H - pad - blen); ctx.lineTo(pad, H - pad); ctx.lineTo(pad + blen, H - pad);
+  ctx.stroke();
+
+  // Bottom-Right (Violet)
+  ctx.strokeStyle = THEME.violetDim;
+  ctx.beginPath();
+  ctx.moveTo(W - pad - blen, H - pad); ctx.lineTo(W - pad, H - pad); ctx.lineTo(W - pad, H - pad - blen);
+  ctx.stroke();
+
+  // Bottom-Left: Just clean "ZERO"
+  ctx.textAlign = "left";
+  ctx.font = `${Math.max(16, Math.round(Math.min(W, H) * 0.028))}px ${UI_FONT}`;
+  ctx.fillStyle = alert ? THEME.alertRed : (state === "speaking" ? THEME.cyan : THEME.violet);
+  ctx.fillText("ZERO", pad + 8, H - pad - 6);
+
+  // Center Banner below HUD Core (Minimal, uncluttered)
+  const bannerY = H * 0.76;
+  ctx.textAlign = "center";
+  ctx.font = `${Math.max(18, Math.round(Math.min(W, H) * 0.034))}px ${UI_FONT}`;
+
+  if (state === "listening") {
+    ctx.fillStyle = THEME.violet;
+    ctx.fillText("LISTENING", W * 0.5, bannerY);
+
+    // Minimal glowing mic level meter
+    const meterW = Math.min(240, W * 0.35);
+    const meterH = 4;
+    const mx = (W - meterW) * 0.5;
+    const my = bannerY + 16;
+    ctx.fillStyle = "rgba(139, 92, 246, 0.15)";
+    ctx.fillRect(mx, my, meterW, meterH);
+    ctx.fillStyle = THEME.violet;
+    ctx.fillRect(mx, my, meterW * Math.min(1, micLevel * 2), meterH);
+  } else if (state === "thinking") {
+    if (!thinkDesc || thinkDesc.done) {
+      thinkDesc = new D(THINK_PHRASES[Math.random() * THINK_PHRASES.length | 0], 60, 1400);
+    }
+    ctx.fillStyle = THEME.violet;
+    ctx.fillText(`THINKING // ${thinkDesc.render(dt)}`, W * 0.5, bannerY);
+  }
+
+  // Alert border
+  if (alert) {
+    const pulse = 0.4 + 0.6 * Math.abs(Math.sin(performance.now() / 200));
+    ctx.fillStyle = `rgba(255, 51, 102, ${0.5 * pulse})`;
+    ctx.fillRect(0, 0, W, 6);
+    ctx.fillRect(0, H - 6, W, 6);
+    ctx.fillRect(0, 0, 6, H);
+    ctx.fillRect(W - 6, 0, 6, H);
+  }
+
+  ctx.restore();
+}
+
+const grid = new PerspectiveGrid();
+const core = new CyberCore();
+
+function resize() {
+  W = cv.width = window.innerWidth || document.documentElement.clientWidth || 800;
+  H = cv.height = window.innerHeight || document.documentElement.clientHeight || 600;
+}
+addEventListener("resize", resize);
+resize();
+
+function frame(dt) {
+  if (W !== innerWidth || H !== innerHeight || W === 0 || H === 0) {
+    resize();
+  }
+  AV.tick(dt);
+  const state = AV.state;
+  const env = AV.env;
+  const samples = AV.samples;
+  const micLevel = AV.micLevel;
+  const alert = AV.alert;
+
+  // Clear background
+  ctx.fillStyle = THEME.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Render 3D Perspective Grid
+  grid.draw(dt, state);
+
+  // Render Central Cyber HUD Core
+  core.draw(dt, state, env, samples, micLevel, alert);
+
+  // Render HUD Chrome & Overlays
+  drawHUDChrome(dt, state, env, micLevel, alert);
+}
+
+addEventListener("keydown", e => {
+  if (e.key === "f" || e.key === "F") {
+    document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  }
+});
+
+let last = performance.now();
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    resize();
+    last = performance.now();
+    frame(16.6);
+  }
+});
+
+window.addEventListener("focus", () => {
+  resize();
+  last = performance.now();
+  frame(16.6);
+});
+
+if (SHOT) {
+  AV.shotRun(frame);
+} else {
+  (function loop(ts) {
+    const dt = Math.min(100, ts - last);
+    last = ts;
+    frame(dt);
+    requestAnimationFrame(loop);
+  })(performance.now());
+}
+</script>
+</body>
+</html>

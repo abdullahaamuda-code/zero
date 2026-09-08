@@ -1,0 +1,26 @@
+{
+  "brain": "zcode",
+  "agent_dir": "..",
+  "name": "Zero",
+  "user_name": "Operator",
+  "model": "google/gemini-2.5-flash",
+  "deep_model": "deepseek/deepseek-r1",
+  "model_gemini": "google/gemini-2.5-flash",
+  "model_deepseek": "deepseek/deepseek-r1",
+  "permission_mode": "bypassPermissions",
+  "ptt_key": "shift",
+  "voice": "am_michael",
+  "tts_engine": "edge-tts",
+  "edge_voice": "en-US-ChristopherNeural",
+  "stt_engine": "groq",
+  "stt_model": "small.en",
+  "extra_dirs": [
+    "../vault"
+  ],
+  "resume_last_session": false,
+  "greeting": "Zero online. Hold {ptt_key} and tell me what we're building.",
+  "greeting_open_mic": "Zero online. I'm listening. What are we building?",
+  "signoff": "Voice line closing. Catch you later.",
+  "zcode_home": "",
+  "mic_mode": "ptt"
+}

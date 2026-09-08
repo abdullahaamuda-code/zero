@@ -1,0 +1,8 @@
+{
+  "name": "ZERO",
+  "badge": "",
+  "face": "zero",
+  "port": 8790,
+  "bus_dir": "../backtalk",
+  "thinking_sound": true
+}
