@@ -58,8 +58,8 @@ Zero operates under two equal mandates:
                  │  • Multi-Model Routing  │
                  │    (Gemini, Opus, etc.) │
                  │  • Spoken Tool Narration│
-                 │  • Full Autonomous YOLO │
-                 │  • File / CLI Execution │
+                 │  • Direct CLI Execution │
+                 │  • Local File System Ops│
                  └─────────────────────────┘
 ```
 
@@ -209,7 +209,7 @@ While in voice mode, speak any of these natural commands:
 | **"Switch to Gemini"** | Switch active model to fast interactive Gemini |
 | **"Switch to the deep model"** | Switch to deep reasoning model (e.g. Opus) for complex tasks |
 | **"Back to the fast model"** | Return to the primary speed-tier model |
-| **"Stop asking for permission"** | Enable full autonomous YOLO execution |
+| **"Stop asking for permission"** | Enable direct local CLI and file system execution |
 | **"Start asking again"** | Require spoken verbal confirmation before modifying files / CLI |
 | **"Compact the session"** | Compact context window to reduce token usage |
 | **"Clear the session"** | Start a completely fresh active session |

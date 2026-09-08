@@ -88,7 +88,7 @@ Speak these phrases during a session to control the voice engine:
 | **"Switch to Gemini"** | Switch active model to fast interactive Gemini |
 | **"Switch to the deep model"** | Switch to deep reasoning model (Opus) |
 | **"Back to the fast model"** | Return to primary speed-tier model |
-| **"Stop asking for permission"** | Enable autonomous YOLO execution |
+| **"Stop asking for permission"** | Enable direct local CLI and file system execution |
 | **"Start asking again"** | Require spoken verbal confirmation before modifying files |
 | **"Clear the session"** | Reset conversation context |
 | **"Compact the session"** | Trigger context window compaction |

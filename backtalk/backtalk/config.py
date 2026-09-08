@@ -42,7 +42,7 @@ DEFAULTS = {
     # Fast models for voice console switching
     "model_gemini": "google/gemini-2.5-flash",
     "model_deepseek": "deepseek/deepseek-r1",
-    # Tool permissions: "bypassPermissions" for autonomous YOLO execution, or "ask"
+    # Tool permissions: "bypassPermissions" for direct local CLI and file system execution, or "ask"
     "permission_mode": "bypassPermissions",
     # Extra folders the agent may access beyond agent_dir (e.g. notes vault)
     "extra_dirs": ["../vault"],
