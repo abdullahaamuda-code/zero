@@ -298,3 +298,6 @@ outcome.
 ## License
 
 [MIT](LICENSE) — free to use, modify, and ship.
+---
+
+Built by Abdullah A-Amuda.
