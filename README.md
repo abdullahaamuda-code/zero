@@ -1,24 +1,6 @@
 # Zero // Autonomous AI Operator & Build Partner
 
-<div align="center">
-
-```
-  ███████╗███████╗██████╗  ██████╗ 
-  ╚══███╔╝██╔════╝██╔══██╗██╔═══██╗
-    ███╔╝ █████╗  ██████╔╝██║   ██║
-   ███╔╝  ██╔══╝  ██╔══██╗██║   ██║
-  ███████╗███████╗██║  ██║╚██████╔╝
-  ╚══════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ 
-```
-
-**Real-Time Voice Line • Reactive Holographic HUD Face • Persistent Memory Vault • Full Autonomous Hands**
-
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-00f0ff.svg?style=flat-square)](https://www.python.org/)
-[![TTS Edge-TTS](https://img.shields.io/badge/TTS-Edge--TTS%20%7C%20Kokoro%20%7C%20ElevenLabs-8b5cf6.svg?style=flat-square)](https://github.com/rany2/edge-tts)
-[![STT Groq Whisper](https://img.shields.io/badge/STT-Groq%20LPU%20(~300ms)%20%7C%20Faster--Whisper-00f0ff.svg?style=flat-square)](https://groq.com/)
-[![License AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-gray.svg?style=flat-square)](LICENSE)
-
-</div>
+Real-time voice line, reactive holographic HUD face, persistent memory vault, full autonomous hands.
 
 ---
 
@@ -148,7 +130,7 @@ Review `backtalk/backtalk.json`:
 }
 ```
 
-- **Set your models:** Replace `"your-provider/your-fast-model"` and `"your-provider/your-deep-model"` with your specific target models (e.g., `"google/gemini-2.5-flash"`, `"deepseek/deepseek-r1"`, `"openai/gpt-4o"`, or your [Cupbearer](https://github.com/cupbearer-gateway/cupbearer) model routes).
+- **Set your models:** Replace `"your-provider/your-fast-model"` and `"your-provider/your-deep-model"` with your specific target models (e.g., `"google/gemini-2.5-flash"`, `"deepseek/deepseek-r1"`, `"openai/gpt-4o"`, or your [Cupbearer](https://github.com/abdullahaamuda-code/cupbearer) model routes).
 - Change `"user_name"` to your preferred name or callsign (e.g. `"Operator"`).
 - Set `"ptt_key"` to your desired Push-to-Talk hotkey (default: `"shift"`, or `"home"`, `"right_alt"`, `"f13"`).
 
@@ -175,7 +157,7 @@ On first run, `uv` will automatically install all Python dependencies in seconds
 Zero connects to LLMs via persistent app-server sessions or API gateways.
 
 ### Option A: Cupbearer / Custom Gateway
-If you run [Cupbearer](https://github.com/cupbearer-gateway/cupbearer) ([documentation](https://cupbearer-gateway.github.io/cupbearer/)), LiteLLM, or an OpenAI-compatible proxy:
+If you run [Cupbearer](https://github.com/abdullahaamuda-code/cupbearer) (docs in its `docs/` folder), LiteLLM, or an OpenAI-compatible proxy:
 1. Configure your gateway endpoint and API keys in `.env` or your gateway secrets config (`~/.config/cupbearer/secrets.json`).
 2. In `backtalk/backtalk.json`, set your model strings to route through your gateway (e.g., `"model": "cupbearer/your-fast-model"`, `"deep_model": "cupbearer/your-deep-model"`).
 
@@ -246,7 +228,7 @@ zero/
 ├── AGENTS.md                   # Zero core boot configuration & identity
 ├── README.md                   # Project documentation
 ├── CONTRIBUTING.md             # Contribution guidelines
-├── LICENSE                     # AGPL-3.0 open-source license
+├── LICENSE                     # MIT open-source license
 ├── start-zero.bat              # One-click Windows launcher
 ├── start-zero.sh               # macOS / Linux launcher
 ├── zero.ico                    # Desktop icon
@@ -307,4 +289,12 @@ zero/
 - Speech recognition powered by [Groq](https://groq.com/) and [faster-whisper](https://github.com/SYSTRAN/faster-whisper).
 - Text-to-speech powered by [Edge-TTS](https://github.com/rany2/edge-tts) and [Kokoro](https://github.com/hexgrad/kokoro).
 
-Licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+## Why
+
+Assistants answer questions; operators finish tasks. Zero holds voice, face, memory,
+and hands in one local process so you can hand it a build — not a prompt — and get an
+outcome.
+
+## License
+
+[MIT](LICENSE) — free to use, modify, and ship.
